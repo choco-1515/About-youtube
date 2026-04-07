@@ -1,0 +1,84 @@
+name: Update Kahoot Keys
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-keys:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch key and update files
+        run: |
+          # Step 1: Fetch key from Kahoot API
+          RESPONSE=$(curl -s https://apis.kahoot.it/media-api/youtube/key)
+          echo "API Response: $RESPONSE"
+
+          # Step 2: Extract the key value from JSON {"key":"..."}
+          KEY=$(echo "$RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin)['key'])")
+          echo "Extracted key: $KEY"
+
+          # Step 3: Write {"value":"<key>"} to edu/key.json
+          python3 -c "import json, sys; print(json.dumps({'value': sys.argv[1]}))" "$KEY" > edu/key.json
+          echo "edu/key.json updated"
+
+          # Step 4: Build key1.json
+          # Create the JSON object {"enc":"<key>"}
+          ENC_JSON=$(python3 -c "import json, sys; print(json.dumps({'enc': sys.argv[1]}, separators=(',', ':')))" "$KEY")
+          echo "enc JSON: $ENC_JSON"
+
+          # URL-encode the JSON object
+          ENC_ENCODED=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "$ENC_JSON")
+          echo "URL-encoded enc: $ENC_ENCODED"
+
+          # Combine into the full URL string and write {"value":"..."} to edu/key1.json
+          KEY1_VALUE="?enablejsapi=1&rel=0&control=1&start=0&autoplay=1&errorlinks=0&embed_config=${ENC_ENCODED}"
+          python3 -c "import json, sys; print(json.dumps({'value': sys.argv[1]}))" "$KEY1_VALUE" > edu/key1.json
+          echo "edu/key1.json updated"
+
+          # Step 5: Build key3.json
+          # Create the JSON object {"enc":"<key>","hideTitle":false}
+          ENC3_JSON=$(python3 -c "import json, sys; print(json.dumps({'enc': sys.argv[1], 'hideTitle': False}, separators=(',', ':')))" "$KEY")
+          echo "enc3 JSON: $ENC3_JSON"
+
+          # URL-encode the JSON object
+          ENC3_ENCODED=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "$ENC3_JSON")
+          echo "URL-encoded enc3: $ENC3_ENCODED"
+
+          # Combine into the full URL string and write {"value":"..."} to edu/key3.json
+          KEY3_VALUE="?autoplay=1&mute=0&controls=1&start=0&origin=https%3A%2F%2Fcreate.kahoot.it&playsinline=1&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&fs=1&cc_load_policy=0&enablejsapi=1&widgetid=1&forigin=https%3A%2F%2Fcreate.kahoot.it%2Flearner%2Fcb8cb5ae-d835-4c4a-bc2d-9cc78519d646%2Fcourse%2F6fba06e3-1f76-47a8-9a4a-53c53eb86286%2F0&aoriginsup=1&vf=6&embed_config=${ENC3_ENCODED}"
+          python3 -c "import json, sys; print(json.dumps({'value': sys.argv[1]}))" "$KEY3_VALUE" > edu/key3.json
+          echo "edu/key3.json updated"
+
+          # Step 6: Build key2.json
+          # Create the JSON object {"enc":"<key>","hideTitle":true}
+          ENC2_JSON=$(python3 -c "import json, sys; print(json.dumps({'enc': sys.argv[1], 'hideTitle': True}, separators=(',', ':')))" "$KEY")
+          echo "enc2 JSON: $ENC2_JSON"
+
+          # URL-encode the JSON object
+          ENC2_ENCODED=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "$ENC2_JSON")
+          echo "URL-encoded enc2: $ENC2_ENCODED"
+
+          # Combine into the full URL string and write {"value":"..."} to edu/key2.json
+          KEY2_VALUE="?autoplay=1&mute=0&controls=1&start=0&origin=https%3A%2F%2Fcreate.kahoot.it&playsinline=1&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&fs=1&cc_load_policy=0&embed_config=${ENC2_ENCODED}&enablejsapi=1&widgetid=1&forigin=https%3A%2F%2Fcreate.kahoot.it%2Flearner%2Fcb8cb5ae-d835-4c4a-bc2d-9cc78519d646%2Fcourse%2F6fba06e3-1f76-47a8-9a4a-53c53eb86286%2F0&aoriginsup=1&vf=6"
+          python3 -c "import json, sys; print(json.dumps({'value': sys.argv[1]}))" "$KEY2_VALUE" > edu/key2.json
+          echo "edu/key2.json updated"
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add edu/key.json edu/key1.json edu/key2.json edu/key3.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-update keys from Kahoot API [skip ci]"
+            git push
+          fi
