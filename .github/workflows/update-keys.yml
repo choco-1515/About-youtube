@@ -40,8 +40,8 @@ jobs:
 
           # Combine into the full URL string and write {"value":"..."} to edu/key1.json
           KEY1_VALUE="?enablejsapi=1&rel=0&control=1&start=0&autoplay=1&errorlinks=0&embed_config=${ENC_ENCODED}"
-          python3 -c "import json, sys; print(json.dumps({'value': sys.argv[1]}))" "$KEY1_VALUE" > edu/key1.json
-          echo "edu/key1.json updated"
+          python3 -c "import json, sys; print(json.dumps({'value': sys.argv[1]}))" "$KEY1_VALUE" > edu/key-1.json
+          echo "edu/key-1.json updated"
 
           # Step 5: Build key3.json
           # Create the JSON object {"enc":"<key>","hideTitle":false}
